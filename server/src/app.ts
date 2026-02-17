@@ -9,6 +9,7 @@ import { authLimiter } from "./middleware/rateLimit";
 import { authRouter } from "./routes/auth.routes";
 import { notFound, errorHandler } from "./middleware/error";
 import { socialRouter } from "./routes/social.routes";
+import { dealRouter } from "./routes/deal.routes";
 
 export const app = express();
 
@@ -20,6 +21,8 @@ app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.json({ limit: "1mb" }));
 app.use("/api/social", socialRouter);
+app.use("/api/deals", dealRouter);
+
 
 app.use(
   cors({
