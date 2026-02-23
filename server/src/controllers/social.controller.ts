@@ -7,13 +7,13 @@ import { AuthedRequest } from "../middleware/auth";
 const createSchema = z.object({
   platform: z.enum(["linkedin", "twitter", "facebook"]),
   profileUrl: z.string().url(),
-  followers: z.number().min(0),
+  followers: z.coerce.number().min(0),
   niche: z.string().min(2),
-  engagementRate: z.number().min(0).max(100),
+  engagementRate: z.coerce.number().min(0).max(100),
   pricing: z.object({
-    header: z.number().min(0),
-    bio: z.number().min(0),
-    post: z.number().min(0),
+    header: z.coerce.number().min(0),
+    bio: z.coerce.number().min(0),
+    post: z.coerce.number().min(0),
   }),
 });
 

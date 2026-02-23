@@ -25,6 +25,10 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().min(1),
 
   APP_BASE_URL: z.string().min(1),
+
+  STRIPE_SECRET_KEY: z.string().min(10),
+  STRIPE_WEBHOOK_SECRET: z.string().min(10),
+  PLATFORM_COMMISSION_RATE: z.coerce.number().min(0).max(1),
 });
 
 export const env = envSchema.parse(process.env);
