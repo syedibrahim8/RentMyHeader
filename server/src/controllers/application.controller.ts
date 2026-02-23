@@ -6,6 +6,9 @@ import { AuthedRequest } from "../middleware/auth";
 import { Campaign } from "../models/Campaign";
 import { Application } from "../models/Application";
 import { SocialProfile } from "../models/SocialProfile";
+import { stripe } from "../lib/stripe";
+import { stripeEscrowIdempotencyKeys } from "../lib/stripeEscrow";
+import { releaseEscrowFunds } from "../services/escrow.service";
 
 const applySchema = z.object({
   campaignId: z.string(),
@@ -188,8 +191,6 @@ const reviewSchema = z.object({
   reason: z.string().optional(),
 });
 
-import { stripe } from "../lib/stripe"; // add this import
-import { Campaign } from "../models/Campaign"; // optional if you want re-fetch
 
 export const reviewProof = asyncHandler(async (req: AuthedRequest, res) => {
   if (req.user?.role !== "brand")
@@ -219,7 +220,7 @@ export const reviewProof = asyncHandler(async (req: AuthedRequest, res) => {
   // ✅ must be funded for escrow
   if (
     !campaign.paymentIntentId ||
-    !["requires_capture", "captured"].includes(campaign.paymentStatus)
+    !["requires_capture", "captured", "succeeded"].includes(campaign.paymentStatus)
   ) {
     throw new ApiError(400, "Campaign is not funded for escrow yet");
   }
@@ -238,7 +239,7 @@ export const reviewProof = asyncHandler(async (req: AuthedRequest, res) => {
       await stripe.paymentIntents.capture(
         campaign.paymentIntentId,
         {},
-        { idempotencyKey: `capture_${campaign._id.toString()}` },
+        { idempotencyKey: stripeEscrowIdempotencyKeys.capture(campaign._id.toString()) },
       );
 
       campaign.paymentStatus = "captured";
@@ -249,10 +250,14 @@ export const reviewProof = asyncHandler(async (req: AuthedRequest, res) => {
     return res.json({ application, campaign });
   }
 
-  // reject -> dispute (no capture)
+  // reject -> dispute + release brand funds
   application.status = "disputed";
   application.rejectedReason = reason ?? "Proof rejected";
   await application.save();
+
+  if (campaign.paymentIntentId) {
+    await releaseEscrowFunds(campaign);
+  }
 
   return res.json({ application, campaign });
 });

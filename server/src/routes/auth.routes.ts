@@ -8,7 +8,13 @@ import { Token } from "../models/Token";
 import { env } from "../config/env";
 import { randomToken, sha256 } from "../utils/crypto";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt";
-import { sendEmail, verificationEmailTemplate, resetPasswordTemplate } from "../services/email.service";
+import {
+  sendEmail,
+  verificationEmailTemplate,
+  verificationEmailText,
+  resetPasswordTemplate,
+  resetPasswordText,
+} from "../services/email.service";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
 
 export const authRouter = Router();
@@ -61,7 +67,12 @@ authRouter.post(
     await Token.create({ userId: user._id, kind: "verifyEmail", tokenHash, expiresAt });
 
     const link = `${env.APP_BASE_URL}/api/auth/verify-email?token=${raw}`;
-    await sendEmail(email, "Verify your email", verificationEmailTemplate(link));
+    await sendEmail({
+      to: email,
+      subject: "Verify your email",
+      html: verificationEmailTemplate(link),
+      text: verificationEmailText(link),
+    });
 
     res.status(201).json({ message: "Registered. Please verify your email." });
   })
@@ -191,7 +202,12 @@ authRouter.post(
     await Token.create({ userId: user._id, kind: "resetPassword", tokenHash, expiresAt });
 
     const link = `${env.APP_BASE_URL}/api/auth/reset-password?token=${raw}`;
-    await sendEmail(email, "Reset your password", resetPasswordTemplate(link));
+    await sendEmail({
+      to: email,
+      subject: "Reset your password",
+      html: resetPasswordTemplate(link),
+      text: resetPasswordText(link),
+    });
 
     res.json({ message: "If the email exists, a reset link will be sent." });
   })

@@ -2,6 +2,8 @@ import { Campaign } from "../models/Campaign";
 import { Application } from "../models/Application";
 import { User } from "../models/User";
 import { stripe } from "../lib/stripe";
+import { stripeEscrowIdempotencyKeys } from "../lib/stripeEscrow";
+import { releaseEscrowFunds } from "./escrow.service";
 
 export const runAutomationInternal = async () => {
   const now = new Date();
@@ -43,35 +45,8 @@ export const runAutomationInternal = async () => {
     const campaign = await Campaign.findById(app.campaign);
     if (!campaign) continue;
 
-    // ✅ Cancel authorization (true escrow) if still not captured
-    if (campaign.paymentIntentId && campaign.paymentStatus === "requires_capture") {
-      await stripe.paymentIntents.cancel(
-        campaign.paymentIntentId,
-        {},
-        { idempotencyKey: `cancel_${campaign._id.toString()}` }
-      );
-
-      campaign.paymentStatus = "canceled";
-      campaign.status = "cancelled";
-      await campaign.save();
-    }
-
-    // Fallback: if already captured, refund once
-    if (
-      campaign.paymentIntentId &&
-      ["captured", "succeeded"].includes(campaign.paymentStatus) &&
-      !campaign.refundId
-    ) {
-      const refund = await stripe.refunds.create(
-        { payment_intent: campaign.paymentIntentId },
-        { idempotencyKey: `refund_${campaign._id.toString()}` }
-      );
-
-      campaign.refundId = refund.id;
-      campaign.refundedAt = now;
-      campaign.paymentStatus = "refunded";
-      campaign.status = "cancelled";
-      await campaign.save();
+    if (campaign.paymentIntentId) {
+      await releaseEscrowFunds(campaign);
     }
 
     // Mark failed_proof so it won't be reprocessed
@@ -128,7 +103,7 @@ export const runAutomationInternal = async () => {
           applicationId: app._id.toString(),
         },
       },
-      { idempotencyKey: `transfer_${campaign._id.toString()}` }
+      { idempotencyKey: stripeEscrowIdempotencyKeys.transfer(campaign._id.toString()) }
     );
 
     campaign.transferId = transfer.id;
