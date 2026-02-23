@@ -51,7 +51,10 @@ export const releaseEscrowFunds = async (campaign: any) => {
   });
 
   if (existingRefunds.data.length > 0) {
-    campaign.refundId = existingRefunds.data[0].id;
+    const firstRefund = existingRefunds.data[0];
+    if (!firstRefund) return campaign;
+
+    campaign.refundId = firstRefund.id;
     campaign.refundedAt = new Date();
     campaign.paymentStatus = "refunded";
     campaign.status = "cancelled";

@@ -8,7 +8,7 @@ import { Application } from "../models/Application";
 import { env } from "../config/env";
 import { hasOverlappingCampaign } from "../services/overlap.service";
 
-const PLATFORM_COMMISSION = env.PLATFORM_COMMISSION_RATE;;
+const PLATFORM_COMMISSION = env.PLATFORM_COMMISSION_RATE;
 
 const createCampaignSchema = z.object({
   assetType: z.enum(["header", "bio", "post"]),
@@ -81,10 +81,10 @@ export const selectInfluencer = asyncHandler(async (req: AuthedRequest, res) => 
   if (req.user?.role !== "brand")
     throw new ApiError(403, "Only brands can select influencer");
 
-  const { campaignId } = req.params;
+  const campaignId = req.params.campaignId;
   const { applicationId } = selectSchema.parse(req.body);
 
-  if (!mongoose.Types.ObjectId.isValid(campaignId))
+  if (typeof campaignId !== "string" || !mongoose.Types.ObjectId.isValid(campaignId))
     throw new ApiError(400, "Invalid campaignId");
 
   if (!mongoose.Types.ObjectId.isValid(applicationId))

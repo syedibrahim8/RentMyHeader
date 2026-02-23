@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { Request, Response } from "express";
 import { env } from "../config/env";
 import { Campaign } from "../models/Campaign";
 import { User } from "../models/User";
@@ -78,7 +79,9 @@ export const payForCampaign = asyncHandler(async (req: AuthedRequest, res) => {
   if (req.user?.role !== "brand")
     throw new ApiError(403, "Only brands can pay");
 
-  const { campaignId } = req.params;
+  const campaignId = req.params.campaignId;
+
+  if (!campaignId) throw new ApiError(400, "campaignId is required");
 
   const campaign = await Campaign.findById(campaignId);
   if (!campaign) throw new ApiError(404, "Campaign not found");
@@ -208,7 +211,7 @@ const setCampaignRefunded = async (charge: Stripe.Charge) => {
   await campaign.save();
 };
 
-export const stripeWebhook = async (req, res) => {
+export const stripeWebhook = async (req: Request, res: Response) => {
   const sig = req.headers["stripe-signature"];
   let event: Stripe.Event;
 

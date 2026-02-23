@@ -71,9 +71,9 @@ export const updateApplication = asyncHandler(
     if (req.user?.role !== "influencer")
       throw new ApiError(403, "Only influencers");
 
-    const { applicationId } = req.params;
+    const applicationId = req.params.applicationId
 
-    if (!mongoose.Types.ObjectId.isValid(applicationId))
+    if (typeof applicationId !== "string" || !mongoose.Types.ObjectId.isValid(applicationId))
       throw new ApiError(400, "Invalid applicationId");
 
     const application = await Application.findById(applicationId);
@@ -116,9 +116,9 @@ export const getCampaignApplicationsForBrand = asyncHandler(
   async (req: AuthedRequest, res) => {
     if (req.user?.role !== "brand") throw new ApiError(403, "Only brands");
 
-    const { campaignId } = req.params;
+    const campaignId = req.params.campaignId;
 
-    if (!mongoose.Types.ObjectId.isValid(campaignId))
+    if (typeof campaignId !== "string" || !mongoose.Types.ObjectId.isValid(campaignId))
       throw new ApiError(400, "Invalid campaignId");
 
     const campaign = await Campaign.findById(campaignId);
@@ -145,9 +145,9 @@ export const submitProof = asyncHandler(async (req: AuthedRequest, res) => {
   if (req.user?.role !== "influencer")
     throw new ApiError(403, "Only influencers can submit proof");
 
-  const { applicationId } = req.params;
+  const applicationId = req.params.applicationId;
 
-  if (!mongoose.Types.ObjectId.isValid(applicationId))
+  if (typeof applicationId !== "string" || !mongoose.Types.ObjectId.isValid(applicationId))
     throw new ApiError(400, "Invalid applicationId");
 
   const { proofUrl, proofNotes } = proofSchema.parse(req.body);
@@ -195,8 +195,8 @@ export const reviewProof = asyncHandler(async (req: AuthedRequest, res) => {
   if (req.user?.role !== "brand")
     throw new ApiError(403, "Only brands can review proof");
 
-  const { applicationId } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(applicationId))
+  const applicationId = req.params.applicationId;
+  if (typeof applicationId !== "string" || !mongoose.Types.ObjectId.isValid(applicationId))
     throw new ApiError(400, "Invalid applicationId");
 
   const { action, reason } = reviewSchema.parse(req.body);
